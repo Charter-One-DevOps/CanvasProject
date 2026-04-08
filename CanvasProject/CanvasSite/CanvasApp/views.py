@@ -7,7 +7,6 @@ from .models import School, Blueprint
 from .forms import SchoolForm, AutoForm, IdForm, FileForm
 
 
-
 from canvas_full_scripts import CanvasScripts #type: ignore
 from dotenv import load_dotenv
 
@@ -38,10 +37,11 @@ class BlueprintView(View):
         elif request.POST.get("action") == "id":
             form = IdForm(request.POST, request.FILES)
             if form.is_valid():
-                sis_id = form.cleaned_data['blueprint_id']
-                if not Blueprint.objects.filter(school= School.objects.get(name= school_name), sis_id=sis_id).exists():
-                    new_item = Blueprint.objects.create(school= School.objects.get(name= school_name), sis_id=sis_id)
-                    new_item.save()
+                sis_ids = form.cleaned_data['blueprint_id'].split(" ")
+                for sis_id in sis_ids:
+                    if not Blueprint.objects.filter(school= School.objects.get(name= school_name), sis_id=sis_id).exists():
+                        new_item = Blueprint.objects.create(school= School.objects.get(name= school_name), sis_id=sis_id)
+                        new_item.save()
         elif request.POST.get("action") == "manual":
             self.handle_uploaded_file(request.FILES["file"])
             load_dotenv("canvas.env")
@@ -81,11 +81,11 @@ class BlueprintView(View):
     def write_blueprints(self, school_name):
         objects = Blueprint.objects.all()
         print(objects)
-        df = pd.DataFrame({"ALA": objects})
+        df = pd.DataFrame({school_name: objects})
         df.to_csv("requiredpath.csv", index=False)
 
 
-class TestClass(View):
+class SelectSchoolView(View):
 
     def get(self, request):
         context = {"form": SchoolForm()}

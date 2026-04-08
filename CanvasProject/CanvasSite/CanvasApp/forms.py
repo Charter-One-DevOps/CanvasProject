@@ -10,7 +10,7 @@ class SchoolForm(forms.Form):
     )
 
 class IdForm(forms.Form):
-    blueprint_id = forms.CharField(label="new blueprint id", max_length=100, required= False)
+    blueprint_id = forms.CharField(label="new blueprint id", max_length=1000, required= False)
 
 class FileForm(forms.Form):
     file = forms.FileField(validators=[FileExtensionValidator(['csv'])], required= False)
