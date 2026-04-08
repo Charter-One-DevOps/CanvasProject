@@ -9,4 +9,18 @@ class SchoolForm(forms.Form):
         empty_label="Select a school",
     )
 
-    file = forms.FileField(validators=[FileExtensionValidator(['csv'])])
+class IdForm(forms.Form):
+    blueprint_id = forms.CharField(label="new blueprint id", max_length=100, required= False)
+
+class FileForm(forms.Form):
+    file = forms.FileField(validators=[FileExtensionValidator(['csv'])], required= False)
+
+class AutoForm(forms.Form):
+    #bp rule
+    bp_rule = forms.BooleanField(required= False)
+    #remote box code
+    box_code = forms.CharField(label="remote box code", max_length=100, required= False)
+    #dissociate
+    dissociate = forms.BooleanField(required= False)
+
+
