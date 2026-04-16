@@ -1,0 +1,10 @@
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <button type="submit" name="action" value="redirect">Back</button> <br><br>
+    {% for script in school.script_set.all %}
+        <button type="submit" name="action" value="{{script.script_name}}">{{script.script_name}}</button> <br>
+    {% empty %}
+        <p>No scripts found for this school.</p>
+    {% endfor %}
+</form>

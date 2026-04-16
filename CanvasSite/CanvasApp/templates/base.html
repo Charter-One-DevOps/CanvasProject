@@ -1,0 +1,28 @@
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <button type="submit" name="action" value="redirect">Back</button> <br>
+    {% if manual %}
+        {% if manual_form %}
+            {{manual_form.as_p}}
+        {% endif %}
+        {{file_form.as_p}}
+        <button type="submit" name="action" value="manual">Manual Run</button> <br>
+    {% endif %}
+
+    {% if extra_info %}
+        {% include extra_info %}
+    {% endif %}
+
+    {% if auto_form %}
+        {{auto_form.as_p}}
+    {% endif %}
+    <button type="submit" name="action" value="auto">Automatic Run</button>
+    {% if output %}
+        <h3>{{school.name}} script output</h3>
+        {% for item in output %}
+            <p>{{item}}</p>
+        {% endfor %}
+    {% endif %}
+
+</form>
