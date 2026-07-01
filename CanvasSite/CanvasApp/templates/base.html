@@ -1,28 +1,20 @@
+{% load static %}
+<link rel="shortcut icon" type="image/png" href="{% static 'images/C1_Logo_HomePlate-Red.png' %}">
 
-<form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    <button type="submit" name="action" value="redirect">Back</button> <br>
-    {% if manual %}
-        {% if manual_form %}
-            {{manual_form.as_p}}
-        {% endif %}
-        {{file_form.as_p}}
-        <button type="submit" name="action" value="manual">Manual Run</button> <br>
-    {% endif %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    {% if extra_info %}
-        {% include extra_info %}
-    {% endif %}
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 
-    {% if auto_form %}
-        {{auto_form.as_p}}
-    {% endif %}
-    <button type="submit" name="action" value="auto">Automatic Run</button>
-    {% if output %}
-        <h3>{{school.name}} script output</h3>
-        {% for item in output %}
-            <p>{{item}}</p>
-        {% endfor %}
-    {% endif %}
+    <title>{% block title %}My Site{% endblock %}</title>
+</head>
+<body>
 
-</form>
+    {% block content %}
+    {% endblock %}
+
+</body>
+</html>

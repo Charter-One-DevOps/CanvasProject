@@ -1,11 +1,9 @@
 
-
-
     {% if school %}
         <h1>{{ school.name }}</h1>
 
         <p class="description">
-            Manage Blueprint SIS IDs associated with this school.
+            Manage Blueprint course-to-ID mappings for this school.
         </p>
     {% else %}
         <h1>No School Selected</h1>
@@ -15,39 +13,44 @@
         </p>
     {% endif %}
 
+
     {% if school %}
 
-    <!-- Existing SIS IDs -->
+    <!-- Existing Blueprint IDs -->
     <div class="card">
 
-        <h2>Blueprint SIS IDs</h2>
+        <h2>Blueprint Mappings</h2>
 
-        <form method="post" enctype="multipart/form-data">
+        <form method="post"
+              enctype="multipart/form-data">
 
             {% csrf_token %}
 
             <div class="form-section">
 
-                {% for blueprint in school.blueprint_set.all %}
+                {% for blueprint in blueprints %}
 
                     <div class="variable-card">
 
                         <div class="account-row">
 
                             <div>
+
                                 <div class="account-name">
-                                    {{ blueprint.sis_id }}
+                                    {{ blueprint.course }}
                                 </div>
 
                                 <div class="current-value">
-                                    Blueprint SIS Identifier
+                                    Maps to:
+                                    <strong>{{ blueprint.blueprint_id }}</strong>
                                 </div>
+
                             </div>
 
                             <button
                                 type="submit"
                                 name="delete"
-                                value="{{ blueprint.sis_id }}"
+                                value="{{ blueprint.course }} to {{ blueprint.blueprint_id }}"
                                 class="btn btn-primary">
 
                                 Delete
@@ -61,7 +64,7 @@
                 {% empty %}
 
                     <p class="description">
-                        No Blueprint SIS IDs found.
+                        No Blueprint mappings found.
                     </p>
 
                 {% endfor %}
@@ -72,10 +75,10 @@
 
     </div>
 
-    <!-- Add SIS ID -->
+    <!-- Add Mapping -->
     <div class="card">
 
-        <h2>Add SIS ID</h2>
+        <h2>Add Mapping</h2>
 
         <form method="post"
               enctype="multipart/form-data"
@@ -95,7 +98,7 @@
                     value="id"
                     class="btn btn-primary">
 
-                    Add ID
+                    Add Mapping
 
                 </button>
 

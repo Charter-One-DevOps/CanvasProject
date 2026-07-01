@@ -1,0 +1,42 @@
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <button type="submit" name="action" value="redirect">Back</button> <br>
+    {% if variables %}
+        <h1>Variables</h1>
+        {% for var_name, data in variables.items %}
+            <p>
+                {{data.form.as_p}}
+                Current value: {{data.instance.value}}<br><br>
+                <button type="submit" name="variable" value="{{ var_name }}">Update</button>
+            </p>
+        {% endfor %}
+    {% endif %}
+
+    {% if manual %}
+        <h1>Manual Run</h1>
+        {% if manual_form %}
+            {{manual_form.as_p}}
+        {% endif %}
+        {{file_form.as_p}}
+        <button type="submit" name="action" value="manual">Manual Run</button> <br>
+    {% endif %}
+
+    {% if extra_info %}
+        {% include extra_info %}
+    {% endif %}
+
+    <h1>Auto Run</h1>
+    {% if auto_form %}
+        {{auto_form.as_p}}
+    {% endif %}
+    <br><button type="submit" name="action" value="auto">Automatic Run</button>
+
+    {% if output %}
+        <h3>{{school.name}} script output</h3>
+        {% for item in output %}
+            <p>{{item}}</p>
+        {% endfor %}
+    {% endif %}
+
+</form>

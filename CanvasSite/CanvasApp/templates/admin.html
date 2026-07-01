@@ -1,34 +1,30 @@
 
+        {% if school %}
+            <h1>{{ school.name }}</h1>
+            <p class="description">
+                Manage connected subaccount IDs for this school.
+            </p>
+        {% else %}
+            <h1>No School Selected</h1>
+            <p class="description">
+                Please return and choose a school first.
+            </p>
+        {% endif %}
 
 
     {% if school %}
-        <h1>{{ school.name }}</h1>
 
-        <p class="description">
-            Manage Blueprint SIS IDs associated with this school.
-        </p>
-    {% else %}
-        <h1>No School Selected</h1>
-
-        <p class="description">
-            Please return and select a school first.
-        </p>
-    {% endif %}
-
-    {% if school %}
-
-    <!-- Existing SIS IDs -->
+    <!-- Existing Accounts -->
     <div class="card">
 
-        <h2>Blueprint SIS IDs</h2>
+        <h2>Subaccounts</h2>
 
         <form method="post" enctype="multipart/form-data">
-
             {% csrf_token %}
 
             <div class="form-section">
 
-                {% for blueprint in school.blueprint_set.all %}
+                {% for account in school.subaccountid_set.all %}
 
                     <div class="variable-card">
 
@@ -36,22 +32,20 @@
 
                             <div>
                                 <div class="account-name">
-                                    {{ blueprint.sis_id }}
+                                    {{ account.name }}
                                 </div>
 
                                 <div class="current-value">
-                                    Blueprint SIS Identifier
+                                    ID: {{ account.account_id }}
                                 </div>
                             </div>
 
                             <button
                                 type="submit"
                                 name="delete"
-                                value="{{ blueprint.sis_id }}"
+                                value="{{ account.name }}"
                                 class="btn btn-primary">
-
                                 Delete
-
                             </button>
 
                         </div>
@@ -61,7 +55,7 @@
                 {% empty %}
 
                     <p class="description">
-                        No Blueprint SIS IDs found.
+                        No subaccounts found.
                     </p>
 
                 {% endfor %}
@@ -72,10 +66,10 @@
 
     </div>
 
-    <!-- Add SIS ID -->
+    <!-- Add Account -->
     <div class="card">
 
-        <h2>Add SIS ID</h2>
+        <h2>Add Subaccount</h2>
 
         <form method="post"
               enctype="multipart/form-data"
@@ -84,21 +78,19 @@
             {% csrf_token %}
 
             <div class="variable-card form-wrapper">
-                {{ id_form.as_p }}
+                {{ add_form.as_p }}
             </div>
 
             <div class="button-row">
-
                 <button
                     type="submit"
                     name="action"
                     value="id"
                     class="btn btn-primary">
 
-                    Add ID
+                    Add Subaccount
 
                 </button>
-
             </div>
 
         </form>

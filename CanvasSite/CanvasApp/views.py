@@ -1,16 +1,33 @@
 import pandas as pd
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.views import View
 
-from .models import School, Blueprint
-from .forms import SchoolForm, BasicForm, IdForm, FileForm
+from .models import School, Blueprint, LexingtonBlueprint, Script, SubAccountId, Variable
+from .forms import SchoolForm, BasicForm, IdForm, LexingtonIdForm, FileForm
 
-
-from canvas_full_scripts import CanvasScripts #type: ignore
+from canvas_full_scripts import CanvasScripts, SchoolInfo
+from gib_admin.config import MSL_ENGINE_CONFIG
+from gib_admin.engine.msl import MSLEngine
+import csv
+import os
+from pybox import BoxDrive
 from dotenv import load_dotenv
 
-#Create you views here.
+import re
+
+
+class SelectSchoolView(View):
+    def get(self, request):
+        context = {"form": SchoolForm()}
+        return render(request, "select.html", context)
+
+    def post(self, request):
+        form = SchoolForm(request.POST, request.FILES)
+        if form.is_valid():
+            return HttpResponseRedirect(f"/Canvas/{form.cleaned_data['school']}")
+        return HttpResponse("invalid data")
+
 
 class SchoolView(View):
     template = "school.html"
@@ -23,71 +40,79 @@ class SchoolView(View):
             return HttpResponseRedirect(f"/Canvas/")
         elif nextScreen := request.POST.get("action"):
             return HttpResponseRedirect(f"/Canvas/{school_name}/{nextScreen}")
-        return self.get(request, school_name)
+        return redirect(request.path)
 
-
-class SelectSchoolView(View):
-
-    def get(self, request):
-        context = {"form": SchoolForm()}
-        return render(request, "select.html", context)
-
-    def post(self, request):
-        form = SchoolForm(request.POST, request.FILES)
-        if form.is_valid():
-            return HttpResponseRedirect(f"/Canvas/{form.cleaned_data['school']}")
-        return HttpResponse("invalid data")
 
 
 class BaseView(View):
-    manual = True
+    manual = False
     manual_csv: str = "manual.csv"
-    template: str = "base.html"
+    template: str = "main.html"
     extra_info: str = None
     extra_context: dict = {}
     auto_params: dict = {}
     manual_params: dict = {}
-    #possibly add script output saving accross screens
-    output = None
-
+    var_params: dict = {}
 
 
     def get(self, request, school_name):
+        variables = self.set_variables(school_name)
         school_object = School.objects.get(name=school_name)
+        script_name = re.findall(r"/([^/]+)/$", request.path)[0]
         context = {"extra_info": self.extra_info,
                    "school": school_object,
-                   "output": self.output,
+                   "script": Script.objects.get(school=school_object, script_name= script_name),
+                   "variables": variables,
+                   "output": request.session.get(request.path + "Output"),
                    "file_form": FileForm(),
                    "auto_form": BasicForm(self.auto_params),
                    "manual": self.manual,
                    "manual_form": BasicForm(self.manual_params)} | self.extra_context
         return render(request, self.template, context)
 
+    def set_variables(self, school_name):
+        school = School.objects.get(name= school_name)
+        variables = {}
+
+        for var_name, var_type in self.var_params.items():
+            variables[var_name] = {
+                "instance": Variable.objects.get_or_create(name=var_name, defaults= {"value": "no value"}, school=school)[0],
+                "form": BasicForm({var_name: var_type})}
+        return variables
+
     def post(self, request, school_name):
-        if request.POST.get("action") == "redirect":
+        if name := request.POST.get("variable"):
+            form = BasicForm({name: self.var_params[name]}, request.POST, request.FILES)
+            if form.is_valid():
+                obj = Variable.objects.get(school=School.objects.get(name=school_name), name=name)
+                obj.value = form.cleaned_data[name]
+                obj.save()
+        elif request.POST.get("action") == "redirect":
             return HttpResponseRedirect(f"/Canvas/{school_name}/")
         elif request.POST.get("action") == "auto":
             form = BasicForm(self.auto_params,request.POST, request.FILES)
             if form.is_valid():
                 load_dotenv("canvas.env")
                 load_dotenv("box.env")
-                self.extra_auto_functions(school_name, form.cleaned_data)
-            # try:
-                self.output = self.output_function(school_name, form.cleaned_data)
-            # except Exception as e:
-            #     return HttpResponse(e)
+                try:
+                    request.session[request.path + "Output"] = self.output_function(school_name, form.cleaned_data)
+                except Exception as e:
+                    request.session[request.path + "Output"] = ["ERROR:", str(e)]
+            else:
+                request.session[request.path + "Output"] = ["ERROR:", str(form.errors)]
         elif self.manual and request.POST.get("action") == "manual":
-            form = BasicForm(self.manual_params, request.POST, request.FILES)
-            self.handle_uploaded_file(request.FILES["file"])
-            load_dotenv("canvas.env")
-            load_dotenv("box.env")
-            self.extra_manual_functions()
-        # try:
-            self.output = self.output_function_manual(school_name, form.cleaned_data)
-        # except Exception as e:
-        #   return HttpResponse(e)
+            form = BasicForm(self.manual_params | self.var_params, request.POST, request.FILES)
+            if form.is_valid():
+                self.handle_uploaded_file(request.FILES.get("file"))
+                load_dotenv("canvas.env")
+                load_dotenv("box.env")
+                try:
+                    request.session[request.path + "Output"] = self.output_function_manual(school_name,
+                                                                                                 form.cleaned_data)
+                except Exception as e:
+                    request.session[request.path + "Output"] = ["ERROR:", str(e)]
 
-        return self.get(request, school_name)
+        return redirect(request.path)
 
     def output_function(self, school_name, form):
         return []
@@ -95,30 +120,93 @@ class BaseView(View):
     def output_function_manual(self, school_name, form):
         return []
 
-    def extra_auto_functions(self, school_name, form):
-        return None
-
-    def extra_manual_functions(self):
-        return None
-
     def handle_uploaded_file(self, f):
         with open(self.manual_csv, "wb+") as destination:
             for chunk in f.chunks():
                 destination.write(chunk)
 
+
+class AdminsView(BaseView):
+    extra_info = "admin.html"
+    add_params = {"account_name": str, "account_ids": str}
+    var_params = {"admin_role_id": int}
+    extra_context = {"add_form": BasicForm(add_params)}
+    import_csv = "import.csv"
+    staff_csv = r"C:\Users\cphill\Documents\GitHub\Canvas-FullScripts\test_list.csv"
+
+
+    def output_function(self, school_name, form):
+        self.update_staff_list()
+        school = School.objects.get(name=school_name)
+        subaccounts_and_ids = dict(
+            SubAccountId.objects
+            .filter(school=school)
+            .values_list("name", "account_id")
+        )
+        output = CanvasScripts.add_admins_using_schoolinfo(
+            SchoolInfo(school_name, Variable.objects.get(name= "admin_role_id", school= school).value, subaccounts_and_ids),
+            local_path=self.import_csv,
+            from_path=self.staff_csv,
+        )
+
+        return [item for sublist in output for item in sublist]
+
+    def update_staff_list(self):
+        ENGINE = MSLEngine(MSL_ENGINE_CONFIG)
+        ENGINE.download_latest()
+
+        with open(r"C:\Users\cphill\Documents\GitHub\Canvas-FullScripts\test_list.csv", mode="w", newline="",
+                  encoding="utf-8") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(["First Name", "Last Name", "Email", "Location"])  # Header row
+
+            for staff in ENGINE.get_admin_staff():
+                try:
+                    # Directly access object attributes from Employee
+                    first_name = getattr(staff, "first_name", "")
+                    last_name = getattr(staff, "last_name", "")
+                    email = getattr(staff, "work_email", "")
+                    location = getattr(staff, "location_name", "")
+
+                    writer.writerow([first_name, last_name, email, location])
+                    print(f"✅ Added: {first_name} {last_name} ({email}) - {location}")
+
+                except Exception as e:
+                    print(f"⚠️ Could not process staff object: {staff} — Error: {e}")
+                    writer.writerow(["", "", "", ""])
+
+        print("\n🎉 Staff list exported to 'staff_list.csv'")
+    def post(self, request, school_name):
+        if account_name := request.POST.get("delete"):
+            SubAccountId.objects.get(school= School.objects.get(name= school_name), name=account_name).delete()
+        elif request.POST.get("action") == "id":
+            form = BasicForm(self.add_params, request.POST, request.FILES)
+            if form.is_valid():
+                subaccount_names = form.cleaned_data['account_name'].split()
+                subaccount_ids = form.cleaned_data['account_ids'].split()
+                for account_name, account_id in zip(subaccount_names, subaccount_ids):
+                    if not SubAccountId.objects.filter(school= School.objects.get(name= school_name),
+                                                       name=account_name).exists():
+                        new_item = SubAccountId.objects.create(school= School.objects.get(name= school_name),
+                                                               name=account_name, account_id=account_id)
+                        new_item.save()
+        return super().post(request, school_name)
+
 class BlueprintView(BaseView):
     extra_info = "blueprint.html"
-    auto_params = {"bp_rule": bool, "box_code": str, "dissociate": bool}
+    var_params = {"bp_rule": bool, "box_code": str}
+    auto_params = {"dissociate": bool}
     manual_params = {"dissociate": bool}
     extra_context = {"id_form": IdForm()}
     import_csv = "import.csv"
+    mapping_csv = "mapping.csv"
+    folder = "395540144538"
 
 
     def post(self, request, school_name):
         if sis_id := request.POST.get("delete"):
             Blueprint.objects.get(school= School.objects.get(name= school_name), sis_id=sis_id).delete()
-        elif request.POST.get("action") == "redirect":
-            return HttpResponseRedirect(f"/Canvas/{school_name}/")
+            self.write_blueprints(school_name)
         elif request.POST.get("action") == "id":
             form = IdForm(request.POST, request.FILES)
             if form.is_valid():
@@ -127,46 +215,122 @@ class BlueprintView(BaseView):
                     if not Blueprint.objects.filter(school= School.objects.get(name= school_name), sis_id=sis_id).exists():
                         new_item = Blueprint.objects.create(school= School.objects.get(name= school_name), sis_id=sis_id)
                         new_item.save()
+                        self.write_blueprints(school_name)
         return super().post(request, school_name)
 
-    def extra_auto_functions(self, school_name, form):
-        self.write_blueprints(school_name)
-
     def output_function(self, school_name, form):
+        self.write_blueprints(school_name)
         bp_rule, box_code, dissociate = form["bp_rule"], form["box_code"], form["dissociate"]
         return CanvasScripts.add_blueprint_to_course(instance=school_name,
                                               import_path=self.import_csv,
                                               box_path=self.import_csv,
                                               course_id_prefix="",
                                               bp_rule=bp_rule,
-                                              sis_mapping_path=self.manual_csv,
+                                              sis_mapping_path=self.mapping_csv,
                                               remote_box_code=box_code,
                                               dissociate=dissociate)
 
     def output_function_manual(self, school_name, form):
-        return CanvasScripts.add_blueprint_to_course_manual(instance=school_name, import_path= self.import_csv, from_path= self.manual_csv, dissociate= form.cleaned_data["dissociate"])
+        return CanvasScripts.add_blueprint_to_course_manual(
+            instance=school_name,
+            import_path= self.import_csv,
+            from_path= self.manual_csv,
+            dissociate= form.cleaned_data["dissociate"])
 
 
     def write_blueprints(self, school_name):
-        objects = Blueprint.objects.all()
+        objects = list(Blueprint.objects.filter(school__name=school_name).values_list('sis_id', flat=True))
         df = pd.DataFrame({school_name: objects})
-        df.to_csv(self.manual_csv, index=False)
+        df.to_csv(self.mapping_csv, index=False)
+        self.upload_to_box(school_name)
+
+    def upload_to_box(self, school_name):
+        load_dotenv("box.env")
+        BOX_CLIENT_ID = os.environ["BOX_CLIENT_ID"]
+        BOX_CLIENT_SECRET = os.environ["BOX_CLIENT_SECRET"]
+        BOX_ENTERPRISE_ID = os.environ["BOX_ENTERPRISE_ID"]
+        b_drive = BoxDrive(BOX_CLIENT_ID, BOX_CLIENT_SECRET, BOX_ENTERPRISE_ID)
+
+        b_drive.upload_file(self.mapping_csv,
+                            f"{school_name} - Blueprints.csv",
+                            self.folder,
+                            True)
+
+class BPLexingtonView(BaseView):
+    extra_info = "lexingtonblueprint.html"
+    import_csv = "import.csv"
+    mapping_csv = "mapping.csv"
+    folder = "395540144538"
+
+    def get(self, request, school_name):
+        self.extra_context = {"blueprints": LexingtonBlueprint.objects.all(), "id_form": LexingtonIdForm()}
+        return super().get(request, school_name)
+
+    def output_function(self, school_name, form):
+        self.write_blueprints(school_name)
+        output = CanvasScripts.add_blueprint_lexington(
+            local_path=self.import_csv,
+            mapping_path= self.mapping_csv
+        )
+
+        return [item for sublist in output for item in sublist]
+
+    def post(self, request, school_name):
+        if info := request.POST.get("delete"):
+            course, blueprint_id = info.split(" to ", 1)
+            LexingtonBlueprint.objects.get(blueprint_id= blueprint_id, course= course).delete()
+            self.write_blueprints()
+            return redirect(request.path)
+        elif request.POST.get("action") == "id":
+            form = LexingtonIdForm(request.POST, request.FILES)
+            if form.is_valid():
+                blueprint_ids = form.cleaned_data['blueprint_id'].strip().split(",")
+                courses = form.cleaned_data['course'].strip().split(",")
+                for course, blueprint_id in zip(courses,blueprint_ids):
+                    if not LexingtonBlueprint.objects.filter(blueprint_id= blueprint_id, course= course).exists():
+                        new_item = LexingtonBlueprint.objects.create(blueprint_id= blueprint_id, course= course)
+                        new_item.save()
+                        self.write_blueprints()
+            return redirect(request.path)
+        return super().post(request, school_name)
+
+    def write_blueprints(self):
+        courses = LexingtonBlueprint.objects.values_list("course", flat=True)
+        blueprints = LexingtonBlueprint.objects.values_list("blueprint_id", flat=True)
+        df = pd.DataFrame({"course": courses, "blueprint_id": blueprints})
+        df.to_csv(self.mapping_csv, index=False)
+        self.upload_to_box("ALALEXINGTON")
+
+    def upload_to_box(self, school_name):
+        load_dotenv("box.env")
+        BOX_CLIENT_ID = os.environ["BOX_CLIENT_ID"]
+        BOX_CLIENT_SECRET = os.environ["BOX_CLIENT_SECRET"]
+        BOX_ENTERPRISE_ID = os.environ["BOX_ENTERPRISE_ID"]
+        b_drive = BoxDrive(BOX_CLIENT_ID, BOX_CLIENT_SECRET, BOX_ENTERPRISE_ID)
+
+        b_drive.upload_file(self.mapping_csv,
+                            f"{school_name} - Blueprints.csv",
+                            self.folder,
+                            True)
+
 
 
 class ObserverView(BaseView):
-    auto_params = {"box_observer_code": str, "box_user_code": str}
+    var_params = { "box_user_code": str, "box_observer_code": str}
 
     import_user_csv = "user.csv"
     import_observer_csv = "observer.csv"
 
     def output_function(self, school_name, form):
-        return CanvasScripts.add_observers(
+        school = School.objects.get(name=school_name)
+        output = CanvasScripts.add_observers(
             importing_user_path=self.import_user_csv,
             importing_observer_path=self.import_observer_csv,
             instance=school_name,
-            box_user_code=form.get("box_user_code"),
-            box_observer_code=form.get("box_observer_code"),
+            box_user_code=Variable.objects.get(name= "box_user_code", school= school).value,
+            box_observer_code=Variable.objects.get(name= "box_observer_code", school= school).value,
         )
+        return [item for sublist in output for item in sublist]
 
     def output_function_manual(self, school_name, form):
         return CanvasScripts.add_observers_manual(
@@ -178,21 +342,58 @@ class ObserverView(BaseView):
 
 
 class GetEnrollmentView(BaseView):
-    manual = False
 
     def output_function(self, school_name, form):
         CanvasScripts.get_all_enrollments(instance=school_name, local_path=self.manual_csv)
         return ["file is in box"]
 
-
-class AddAdmins(BaseView):
+class AddDesignersView(BaseView):
     import_csv = "import.csv"
-    from_csv = "from.csv"
+    auto_params = {"delete_designers": bool}
 
     def output_function(self, school_name, form):
-        return CanvasScripts.add_admins(
-            local_path=self.import_csv,
-            from_path=self.from_csv,
-            #Blah blah blah
-            #add admins is gonna need lots of code for its dicts. probably gonna use extra info to save ids and its things
+        return CanvasScripts.add_designers(
+            instance=school_name,
+            import_path=self.import_csv,
+            delete_designers=form.get("delete_designers")
         )
+
+class SisIdView(BaseView):
+    auto_params = {"student": bool, "teacher": bool}
+    import_csv = "import.csv"
+    problem_csv = "problem.csv"
+
+    def output_function(self, school_name, form):
+        output = CanvasScripts.check_and_change_sis_id(
+            instance=school_name,
+            local_path=self.import_csv,
+            student=form.get("student"),
+            teacher=form.get("teacher"),
+            problem_path=self.problem_csv,
+        )
+        return [item for sublist in output for item in sublist]
+
+class CrosslistVirtualView(BaseView):
+    mapping_csv = "mapping.csv"
+    import_csv = "import.csv"
+    box_csv = "box.csv"
+
+    var_params = {"remote_code": str}
+
+    def output_function(self, school_name, form):
+        return CanvasScripts.crosslist_virtual(
+            mapping_path=self.mapping_csv,
+            local_path=self.import_csv,
+            box_path=self.box_csv,
+            remote_code=form.get("remote_code"),
+        )
+
+class RemovePeriodsView(BaseView):
+    import_csv = "import.csv"
+
+    def output_function(self, school_name, form):
+        output = CanvasScripts.remove_period(
+            instance=school_name,
+            local_path= self.import_csv,
+        )
+        return [item for sublist in output for item in sublist]

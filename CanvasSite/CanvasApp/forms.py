@@ -10,10 +10,14 @@ class SchoolForm(forms.Form):
     )
 
 class IdForm(forms.Form):
-    blueprint_id = forms.CharField(label="new blueprint id", max_length=1000, required= False)
+    blueprint_id = forms.CharField(label="new blueprint id", max_length=1000)
+
+class LexingtonIdForm(forms.Form):
+    blueprint_id = forms.CharField(label="new blueprint id", max_length=1000)
+    course = forms.CharField(label="new course id", max_length=1000)
 
 class FileForm(forms.Form):
-    file = forms.FileField(validators=[FileExtensionValidator(['csv'])], required= False)
+    file = forms.FileField(validators=[FileExtensionValidator(['csv'])])
 
 class BasicForm(forms.Form):
 
@@ -21,8 +25,8 @@ class BasicForm(forms.Form):
         super().__init__(*args, **kwargs)
 
         correct_field = {
-            int: forms.IntegerField(required=False),
-            str: forms.CharField(max_length=200, required=False),
+            int: forms.IntegerField(),
+            str: forms.CharField(max_length=200),
             bool: forms.BooleanField(required=False),
         }
 
