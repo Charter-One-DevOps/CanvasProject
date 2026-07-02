@@ -53,6 +53,9 @@ class BaseView(View):
     auto_params: dict = {}
     manual_params: dict = {}
     var_params: dict = {}
+    var_csv: str = "var.csv"
+    uploaded_file: str = None
+    uploaded_folder: str = None
 
 
     def get(self, request, school_name):
@@ -86,6 +89,7 @@ class BaseView(View):
             if form.is_valid():
                 obj = Variable.objects.get(school=School.objects.get(name=school_name), name=name)
                 obj.value = form.cleaned_data[name]
+                self.update_variables_csv(school_name, name, obj.value)
                 obj.save()
         elif request.POST.get("action") == "redirect":
             return HttpResponseRedirect(f"/Canvas/{school_name}/")
@@ -119,6 +123,31 @@ class BaseView(View):
 
     def output_function_manual(self, school_name, form):
         return []
+
+    def update_variables_csv(self, school_name, variable_name, value):
+        df = pd.read_csv(self.var_csv, index_col=0)
+        if school_name in df.columns:
+            df[school_name] = df[school_name].astype(str)
+        df.loc[variable_name, school_name] = str(value)
+        df.to_csv(self.var_csv)
+        self.upload_to_box("ALL VARIABLES.csv", self.var_csv, "395540144538")
+
+    def upload_to_box(self, remote_name, local_file = None, box_folder = None):
+        if local_file is None:
+            local_file = self.uploaded_file
+        if box_folder is None:
+            box_folder = self.uploaded_folder
+
+        load_dotenv("box.env")
+        BOX_CLIENT_ID = os.environ["BOX_CLIENT_ID"]
+        BOX_CLIENT_SECRET = os.environ["BOX_CLIENT_SECRET"]
+        BOX_ENTERPRISE_ID = os.environ["BOX_ENTERPRISE_ID"]
+        b_drive = BoxDrive(BOX_CLIENT_ID, BOX_CLIENT_SECRET, BOX_ENTERPRISE_ID)
+
+        b_drive.upload_file(local_file,
+                            remote_name,
+                            box_folder,
+                            True)
 
     def handle_uploaded_file(self, f):
         with open(self.manual_csv, "wb+") as destination:
@@ -176,6 +205,7 @@ class AdminsView(BaseView):
                     writer.writerow(["", "", "", ""])
 
         print("\n🎉 Staff list exported to 'staff_list.csv'")
+
     def post(self, request, school_name):
         if account_name := request.POST.get("delete"):
             SubAccountId.objects.get(school= School.objects.get(name= school_name), name=account_name).delete()
@@ -200,8 +230,9 @@ class BlueprintView(BaseView):
     extra_context = {"id_form": IdForm()}
     import_csv = "import.csv"
     mapping_csv = "mapping.csv"
-    folder = "395540144538"
 
+    uploaded_folder = "395540144538"
+    uploaded_file = mapping_csv
 
     def post(self, request, school_name):
         if sis_id := request.POST.get("delete"):
@@ -242,25 +273,15 @@ class BlueprintView(BaseView):
         objects = list(Blueprint.objects.filter(school__name=school_name).values_list('sis_id', flat=True))
         df = pd.DataFrame({school_name: objects})
         df.to_csv(self.mapping_csv, index=False)
-        self.upload_to_box(school_name)
-
-    def upload_to_box(self, school_name):
-        load_dotenv("box.env")
-        BOX_CLIENT_ID = os.environ["BOX_CLIENT_ID"]
-        BOX_CLIENT_SECRET = os.environ["BOX_CLIENT_SECRET"]
-        BOX_ENTERPRISE_ID = os.environ["BOX_ENTERPRISE_ID"]
-        b_drive = BoxDrive(BOX_CLIENT_ID, BOX_CLIENT_SECRET, BOX_ENTERPRISE_ID)
-
-        b_drive.upload_file(self.mapping_csv,
-                            f"{school_name} - Blueprints.csv",
-                            self.folder,
-                            True)
+        self.upload_to_box(f"{school_name} - Blueprints.csv")
 
 class BPLexingtonView(BaseView):
     extra_info = "lexingtonblueprint.html"
     import_csv = "import.csv"
     mapping_csv = "mapping.csv"
-    folder = "395540144538"
+
+    uploaded_folder = "395540144538"
+    uploaded_file = mapping_csv
 
     def get(self, request, school_name):
         self.extra_context = {"blueprints": LexingtonBlueprint.objects.all(), "id_form": LexingtonIdForm()}
@@ -299,24 +320,12 @@ class BPLexingtonView(BaseView):
         blueprints = LexingtonBlueprint.objects.values_list("blueprint_id", flat=True)
         df = pd.DataFrame({"course": courses, "blueprint_id": blueprints})
         df.to_csv(self.mapping_csv, index=False)
-        self.upload_to_box("ALALEXINGTON")
-
-    def upload_to_box(self, school_name):
-        load_dotenv("box.env")
-        BOX_CLIENT_ID = os.environ["BOX_CLIENT_ID"]
-        BOX_CLIENT_SECRET = os.environ["BOX_CLIENT_SECRET"]
-        BOX_ENTERPRISE_ID = os.environ["BOX_ENTERPRISE_ID"]
-        b_drive = BoxDrive(BOX_CLIENT_ID, BOX_CLIENT_SECRET, BOX_ENTERPRISE_ID)
-
-        b_drive.upload_file(self.mapping_csv,
-                            f"{school_name} - Blueprints.csv",
-                            self.folder,
-                            True)
+        self.upload_to_box("ALALEXINGTON - Blueprints.csv")
 
 
 
 class ObserverView(BaseView):
-    var_params = { "box_user_code": str, "box_observer_code": str}
+    var_params = {"box_user_code": str, "box_observer_code": str}
 
     import_user_csv = "user.csv"
     import_observer_csv = "observer.csv"
