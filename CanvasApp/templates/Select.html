@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+{{ school.name }}
+{% endblock %}
+
+{% block content %}
+
+<div class="page-container">
+
+    <div class="card hero-card form-card">
+
+        <!-- Logo -->
+        <div class="logo-container">
+            <img
+                src="{% static 'images/C1_Logo_HomePlate-Red.png' %}"
+                alt="Charter One Logo"
+                class="logo"
+            >
+        </div>
+
+        <!-- Header -->
+        <h1>Select a School</h1>
+
+        <p class="description">
+            Choose a school below to continue to the available scripts and tools.
+        </p>
+
+        <!-- Form -->
+        <form method="post"
+              enctype="multipart/form-data"
+              class="form-section">
+
+            {% csrf_token %}
+
+            <div class="variable-card form-wrapper">
+                {{ form.as_p }}
+            </div>
+
+            <div class="button-row">
+                <button type="submit" class="btn btn-primary">
+                    Continue →
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}

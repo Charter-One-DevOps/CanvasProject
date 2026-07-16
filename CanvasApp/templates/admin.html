@@ -1,0 +1,58 @@
+{% if school %}
+    <h1>{{ school.name }}</h1>
+    <p class="description"> Manage connected subaccount IDs for this school. </p>
+{% else %}
+    <h1>No School Selected</h1>
+    <p class="description"> Please return and choose a school first. </p>
+{% endif %}
+
+{% if school %}
+    <!-- Existing Accounts -->
+    <div class="card">
+        <details open>
+            <summary style="cursor: pointer; user-select: none; outline: none;">
+                <h2 style="display: inline;">Subaccounts</h2>
+            </summary>
+            <div style="margin-top: 20px;">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="form-section">
+                        {% for account in school.subaccountid_set.all %}
+                            <div class="variable-card">
+                                <div class="account-row">
+                                    <div>
+                                        <div class="account-name"> {{ account.name }} </div>
+                                        <div class="current-value"> ID: {{ account.account_id }} </div>
+                                    </div>
+                                    <button type="submit" name="delete" value="{{ account.name }}" class="btn btn-primary"> Delete </button>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <p class="description"> No subaccounts found. </p>
+                        {% endfor %}
+                    </div>
+                </form>
+            </div>
+        </details>
+    </div>
+
+    <!-- Add Account -->
+    <div class="card">
+        <details open>
+            <summary style="cursor: pointer; user-select: none; outline: none;">
+                <h2 style="display: inline;">Add Subaccount</h2>
+            </summary>
+            <div style="margin-top: 20px;">
+                <form method="post" enctype="multipart/form-data" class="form-section">
+                    {% csrf_token %}
+                    <div class="variable-card form-wrapper">
+                        {{ add_form.as_p }}
+                    </div>
+                    <div class="button-row">
+                        <button type="submit" name="action" value="id" class="btn btn-primary"> Add Subaccount </button>
+                    </div>
+                </form>
+            </div>
+        </details>
+    </div>
+{% endif %}
