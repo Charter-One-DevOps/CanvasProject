@@ -248,8 +248,7 @@ class AdminsView(BaseView):
 class BlueprintView(BaseView):
     extra_info = "blueprint.html"
     var_params = {"bp_rule": bool, "box_code": str}
-    auto_params = {"dissociate": bool}
-    manual_params = {"dissociate": bool}
+    auto_params = {"dissociate": bool, "reset_and_dissociate": bool}
     extra_context = {"id_form": IdForm()}
     import_csv = "import.csv"
     mapping_csv = "mapping.csv"
@@ -274,7 +273,7 @@ class BlueprintView(BaseView):
 
     def output_function(self, school_name, form):
         self.write_blueprints(school_name)
-        bp_rule, box_code, dissociate = form["bp_rule"], form["box_code"], form["dissociate"]
+        bp_rule, box_code, dissociate, reset_and_dissociate = form["bp_rule"], form["box_code"], form["dissociate"], form["reset_and_dissociate"]
         return CanvasScripts.add_blueprint_to_course(instance=school_name,
                                               import_path=self.import_csv,
                                               box_path=self.import_csv,
@@ -282,7 +281,8 @@ class BlueprintView(BaseView):
                                               bp_rule=bp_rule,
                                               sis_mapping_path=self.mapping_csv,
                                               remote_box_code=box_code,
-                                              dissociate=dissociate)
+                                              dissociate=dissociate,
+                                              reset_and_dissociate=reset_and_dissociate)
 
     def output_function_manual(self, school_name, form):
         return CanvasScripts.add_blueprint_to_course_manual(
