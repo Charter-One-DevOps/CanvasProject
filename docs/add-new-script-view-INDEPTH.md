@@ -54,12 +54,12 @@ Get your finished class
       
       from canvas_full_scripts import CanvasScripts
       
-      class RemovePeriodsView(BaseView):
+      class NewScriptView(BaseView):
           import_csv = "import.csv"
       
           def output_function(self, school_name, form):
-              output = CanvasScripts.remove_period(
-                  instance=school_name,
+              output = CanvasScripts.new_script(
+                  instance= school_name,
                   local_path= self.import_csv,
               )
               return [item for sublist in output for item in sublist]
@@ -77,5 +77,56 @@ Add the class to the "views/_\_init__.py" file
       from .views_observer import ObserverView
       from .views_sisid import SisIdView
       
-      from .views_removeperiod import RemovePeriodsView   # Adding in the brand new class
+      from .views_newscript import NewScriptView  # Adding in the brand new class
+
+---
+
+#### Adding script information to the "script" model
+
+You will have to add to 3 dictionaries.
+
+The first dictionary is "possible_scripts". \
+The key must be the exact letters of the url. If this "path('<\str:school_name>/***NewScript***/', views.NewScriptView.as_view(), name='newScriptView')," is the new item in the urls.py file, ***NewScript*** needs to be the key \
+The value is what will be shown when a user chooses a script
+
+
+    possible_scripts = {
+        "Admin": "Add Admins script",
+        ...
+        "RemovePeriod": "Remove Period script",
+
+        "NewScript": "New Scripr script"  # The new addition
+    }
+
+The second dictionary is "brief". \
+The key must be the same as the first dictionaries key.\
+The value is a brief description of what the new script does.
+
+    brief = {
+        "Admin": "Adds admins",
+        ...
+        "RemovePeriod": "Remove Period from course name",
+
+        "NewScript": "Makes scripts new"  # The new addition
+    }
+
+The third dictionary is "full" \
+The key must be the same as the first dictionaries key.\
+The value is a full description of what the new script does.
+
+    full = {
+        "Admin": (
+            "The Admin script uses the staff list created by GIB Admin to add administrators "
+            "to the correct accounts."
+        ),
+        ...
+        "RemovePeriod": (
+            "The RemovePeriod script finds courses with 'Period' in the course name and removes it."
+        ),
+
+        "NewScript": (
+            "Goes through each script then makes the script brand new if it needs to be new"
+            
+        )  # The new addition
+    }
 

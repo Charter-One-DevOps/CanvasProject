@@ -1,5 +1,5 @@
 import pandas as pd
-from jango.shortcuts import redirect
+from django.shortcuts import redirect
 from .views_base import BaseView
 
 from ..models import LexingtonBlueprint
