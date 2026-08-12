@@ -1,20 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}
-{{ school.name }}
-{% endblock %}
+{% block title %} {{ school.name }} {% endblock %}
 
 {% block content %}
-
-
 <div class="page-container">
-
     <!-- Back Button -->
     <form method="post" class="inline-form" enctype="multipart/form-data">
         {% csrf_token %}
-        <button type="submit" name="action" value="redirect" class="btn btn-secondary">
-            ← Back
-        </button>
+        <button type="submit" name="action" value="redirect" class="btn btn-secondary"> ← Back </button>
     </form>
 
     <!-- Header -->
@@ -23,118 +16,106 @@
         <p class="description">{{ script.description }}</p>
     </div>
 
-    <!-- Variables -->
-    {% if variables %}
-    <div class="card">
-        <h2>Variables</h2>
-
-
-
-        {% for var_name, data in variables.items %}
-            <form method="post" class="form-section" enctype="multipart/form-data">
-                {% csrf_token %}
-                <div class="variable-card">
-
-                    <div class="form-group">
-                        {{ data.form.as_p }}
-                    </div>
-
-                    <p class="current-value">
-                        <strong>Current Value:</strong>
-                        {{ data.instance.value }}
-                    </p>
-
-                    <button
-                        type="submit"
-                        name="variable"
-                        value="{{ var_name }}"
-                        class="btn btn-primary"
-                    >
-                        Update
-                    </button>
-
+    <!-- Output -->
+    {% if output %}
+    <div class="card output-card">
+        <details open>
+            <summary style="cursor: pointer; user-select: none; outline: none;">
+                <h2 style="display: inline;">{{ school.name }} Script Output</h2>
+            </summary>
+            <!-- Div margin handles spacing below the title when open -->
+            <div style="margin-top: 20px;">
+                <div class="output-box">
+                    {% for item in output %}
+                        <p>{{ item }}</p>
+                    {% endfor %}
                 </div>
-            </form>
-        {% endfor %}
+            </div>
+        </details>
     </div>
     {% endif %}
 
     <!-- Manual Run -->
     {% if manual %}
     <div class="card">
-        <h2>Manual Run</h2>
-
-        <form method="post" class="form-section" enctype="multipart/form-data">
-            {% csrf_token %}
-
-            {% if manual_form %}
-                <div class="form-group">
-                    {{ manual_form.as_p }}
-                </div>
-            {% endif %}
-
-            <div class="form-group">
-                {{ file_form.as_p }}
+        <details open>
+            <summary style="cursor: pointer; user-select: none; outline: none;">
+                <h2 style="display: inline;">Manual Run</h2>
+            </summary>
+            <div style="margin-top: 20px;">
+                <form method="post" class="form-section" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {% if manual_form %}
+                        <div class="form-group">
+                            {{ manual_form.as_p }}
+                        </div>
+                    {% endif %}
+                    <button type="submit" onclick="alert('manual run is in progress')" name="action" value="manual" class="btn btn-success"> Run Manually </button>
+                </form>
             </div>
-
-            <button
-                type="submit"
-                onclick="alert('manual run is in progress')"
-                name="action"
-                value="manual"
-                class="btn btn-success"
-            >
-                Run Manually
-            </button>
-        </form>
+        </details>
     </div>
     {% endif %}
 
     <!-- Extra Info -->
     {% if extra_info %}
-        <div class="card">
-            {% include extra_info %}
-        </div>
+    <div class="card">
+        <details open>
+            <summary style="cursor: pointer; user-select: none; outline: none;">
+                <h2 style="display: inline;">Extra Information</h2>
+            </summary>
+            <div style="margin-top: 20px;">
+                {% include extra_info %}
+            </div>
+        </details>
+    </div>
+    {% endif %}
+
+    <!-- Variables -->
+    {% if variables %}
+    <div class="card">
+        <details open>
+            <summary style="cursor: pointer; user-select: none; outline: none;">
+                <h2 style="display: inline;">Variables</h2>
+            </summary>
+            <div style="margin-top: 20px;">
+                {% for var_name, data in variables.items %}
+                <form method="post" class="form-section" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="variable-card">
+                        <div class="form-group">
+                            {{ data.form.as_p }}
+                        </div>
+                        <p class="current-value">
+                            <strong>Current Value:</strong> {{ data.instance.value }}
+                        </p>
+                        <button type="submit" name="variable" value="{{ var_name }}" class="btn btn-primary"> Update </button>
+                    </div>
+                </form>
+                {% endfor %}
+            </div>
+        </details>
+    </div>
     {% endif %}
 
     <!-- Auto Run -->
     <div class="card">
-        <h2>Auto Run</h2>
-
-        <form method="post" class="form-section" enctype="multipart/form-data">
-            {% csrf_token %}
-
-            {% if auto_form %}
-                <div class="form-group">
-                    {{ auto_form.as_p }}
-                </div>
-            {% endif %}
-
-            <button
-                type="submit"
-                onclick="alert('automatic run is in progress')"
-                name="action"
-                value="auto"
-                class="btn btn-primary"
-            >
-                Run Automatically
-            </button>
-        </form>
+        <details open>
+            <summary style="cursor: pointer; user-select: none; outline: none;">
+                <h2 style="display: inline;">Auto Run</h2>
+            </summary>
+            <div style="margin-top: 20px;">
+                <form method="post" class="form-section" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {% if auto_form %}
+                        <div class="form-group">
+                            {{ auto_form.as_p }}
+                        </div>
+                    {% endif %}
+                    <button type="submit" onclick="alert('automatic run is in progress')" name="action" value="auto" class="btn btn-primary"> Run Automatically </button>
+                </form>
+            </div>
+        </details>
     </div>
-
-    <!-- Output -->
-    {% if output %}
-    <div class="card output-card">
-        <h2>{{ school.name }} Script Output</h2>
-
-        <div class="output-box">
-            {% for item in output %}
-                <p>{{ item }}</p>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-
 </div>
-
 {% endblock %}

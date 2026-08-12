@@ -1,108 +1,58 @@
+{% if school %}
+    <h1>{{ school.name }}</h1>
+    <p class="description"> Manage Blueprint SIS IDs associated with this school. </p>
+{% else %}
+    <h1>No School Selected</h1>
+    <p class="description"> Please return and select a school first. </p>
+{% endif %}
 
-
-
-    {% if school %}
-        <h1>{{ school.name }}</h1>
-
-        <p class="description">
-            Manage Blueprint SIS IDs associated with this school.
-        </p>
-    {% else %}
-        <h1>No School Selected</h1>
-
-        <p class="description">
-            Please return and select a school first.
-        </p>
-    {% endif %}
-
-    {% if school %}
-
+{% if school %}
     <!-- Existing SIS IDs -->
     <div class="card">
-
-        <h2>Blueprint SIS IDs</h2>
-
-        <form method="post" enctype="multipart/form-data">
-
-            {% csrf_token %}
-
-            <div class="form-section">
-
-                {% for blueprint in school.blueprint_set.all %}
-
-                    <div class="variable-card">
-
-                        <div class="account-row">
-
-                            <div>
-                                <div class="account-name">
-                                    {{ blueprint.sis_id }}
-                                </div>
-
-                                <div class="current-value">
-                                    Blueprint SIS Identifier
+        <details open>
+            <summary style="cursor: pointer; user-select: none; outline: none;">
+                <h2 style="display: inline;">Blueprint SIS IDs</h2>
+            </summary>
+            <div style="margin-top: 20px;">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="form-section">
+                        {% for blueprint in school.blueprint_set.all %}
+                            <div class="variable-card">
+                                <div class="account-row">
+                                    <div>
+                                        <div class="account-name"> {{ blueprint.sis_id }} </div>
+                                        <div class="current-value"> Blueprint SIS Identifier </div>
+                                    </div>
+                                    <button type="submit" name="delete" value="{{ blueprint.sis_id }}" class="btn btn-primary"> Delete </button>
                                 </div>
                             </div>
-
-                            <button
-                                type="submit"
-                                name="delete"
-                                value="{{ blueprint.sis_id }}"
-                                class="btn btn-primary">
-
-                                Delete
-
-                            </button>
-
-                        </div>
-
+                        {% empty %}
+                            <p class="description"> No Blueprint SIS IDs found. </p>
+                        {% endfor %}
                     </div>
-
-                {% empty %}
-
-                    <p class="description">
-                        No Blueprint SIS IDs found.
-                    </p>
-
-                {% endfor %}
-
+                </form>
             </div>
-
-        </form>
-
+        </details>
     </div>
 
     <!-- Add SIS ID -->
     <div class="card">
-
-        <h2>Add SIS ID</h2>
-
-        <form method="post"
-              enctype="multipart/form-data"
-              class="form-section">
-
-            {% csrf_token %}
-
-            <div class="variable-card form-wrapper">
-                {{ id_form.as_p }}
+        <details open>
+            <summary style="cursor: pointer; user-select: none; outline: none;">
+                <h2 style="display: inline;">Add SIS ID</h2>
+            </summary>
+            <div style="margin-top: 20px;">
+                <form method="post" enctype="multipart/form-data" class="form-section">
+                    {% csrf_token %}
+                    <div class="variable-card form-wrapper">
+                        {{ id_form.as_p }}
+                    </div>
+                    <div class="button-row">
+                        <button type="submit" name="action" value="id" class="btn btn-primary"> Add ID </button>
+                    </div>
+                </form>
             </div>
-
-            <div class="button-row">
-
-                <button
-                    type="submit"
-                    name="action"
-                    value="id"
-                    class="btn btn-primary">
-
-                    Add ID
-
-                </button>
-
-            </div>
-
-        </form>
-
+        </details>
     </div>
-
-    {% endif %}
+{% endif %}
