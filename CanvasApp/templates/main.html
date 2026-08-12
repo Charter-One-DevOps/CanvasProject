@@ -35,33 +35,6 @@
     </div>
     {% endif %}
 
-    <!-- Variables -->
-    {% if variables %}
-    <div class="card">
-        <details open>
-            <summary style="cursor: pointer; user-select: none; outline: none;">
-                <h2 style="display: inline;">Variables</h2>
-            </summary>
-            <div style="margin-top: 20px;">
-                {% for var_name, data in variables.items %}
-                <form method="post" class="form-section" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    <div class="variable-card">
-                        <div class="form-group">
-                            {{ data.form.as_p }}
-                        </div>
-                        <p class="current-value">
-                            <strong>Current Value:</strong> {{ data.instance.value }}
-                        </p>
-                        <button type="submit" name="variable" value="{{ var_name }}" class="btn btn-primary"> Update </button>
-                    </div>
-                </form>
-                {% endfor %}
-            </div>
-        </details>
-    </div>
-    {% endif %}
-
     <!-- Manual Run -->
     {% if manual %}
     <div class="card">
@@ -93,6 +66,33 @@
             </summary>
             <div style="margin-top: 20px;">
                 {% include extra_info %}
+            </div>
+        </details>
+    </div>
+    {% endif %}
+
+    <!-- Variables -->
+    {% if variables %}
+    <div class="card">
+        <details open>
+            <summary style="cursor: pointer; user-select: none; outline: none;">
+                <h2 style="display: inline;">Variables</h2>
+            </summary>
+            <div style="margin-top: 20px;">
+                {% for var_name, data in variables.items %}
+                <form method="post" class="form-section" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="variable-card">
+                        <div class="form-group">
+                            {{ data.form.as_p }}
+                        </div>
+                        <p class="current-value">
+                            <strong>Current Value:</strong> {{ data.instance.value }}
+                        </p>
+                        <button type="submit" name="variable" value="{{ var_name }}" class="btn btn-primary"> Update </button>
+                    </div>
+                </form>
+                {% endfor %}
             </div>
         </details>
     </div>
