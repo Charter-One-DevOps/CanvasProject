@@ -1,2 +1,2 @@
-from models import *
-from models_script import Script
+from .models import *
+from .models_script import Script
