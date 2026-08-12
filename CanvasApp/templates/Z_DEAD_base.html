@@ -1,0 +1,52 @@
+
+<form method="post" class= "form" enctype="multipart/form-data">
+    {% csrf_token %}
+    <button type="submit" name="action" value="redirect">Back</button> <br>
+</form>
+<h1>{{ school.name }}</h1>
+<p>{{ script.description }}</p>
+{% if variables %}
+    <h1>Variables</h1>
+    <form method="post" class= "form" enctype="multipart/form-data">
+        {% csrf_token %}
+        {% for var_name, data in variables.items %}
+            <p>
+                {{ data.form.as_p }}
+                Current value: {{data.instance.value}}<br><br>
+            </p>
+            <button type="submit" name="variable" value="{{ var_name }}">Update</button>
+        {% endfor %}
+    </form>
+{% endif %}
+
+{% if manual %}
+    <h1>Manual Run</h1>
+    <form method="post" class= "form" enctype="multipart/form-data">
+        {% csrf_token %}
+        {% if manual_form %}
+            {{ manual_form.as_p }}
+        {% endif %}
+        {{ file_form.as_p }}
+        <button type="submit" onclick="alert('manual run is in progress')" name="action" value="manual">Manual Run</button> <br>
+    </form>
+{% endif %}
+
+{% if extra_info %}
+    {% include extra_info %}
+{% endif %}
+
+<h1>Auto Run</h1>
+<form method="post" class= "form" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% if auto_form %}
+        {{auto_form.as_p}}
+    {% endif %}
+    <br><button type="submit" onclick="alert('automatic run is in progress')" name="action" value="auto">Automatic Run</button>
+</form>
+
+{% if output %}
+    <h3>{{school.name}} script output</h3>
+    {% for item in output %}
+        <p>{{item}}</p>
+    {% endfor %}
+{% endif %}
