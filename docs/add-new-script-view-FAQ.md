@@ -1,10 +1,10 @@
-### Examples and Extra Info
+### Frequently Asked Questions
 
 ---
 
 ---
 
-#### Creating a new file
+#### What imports does every script need?
 
 There are 2 imports you have to have. 
 
@@ -16,7 +16,7 @@ from canvas_full_scripts import CanvasScripts
 
 ---
 
-#### Adding onto post
+#### How do I add functionality to post?
 
 Add all the new things posts needs to do.
 
@@ -46,7 +46,7 @@ Always return BaseClass's post.
 
 ---
 
-#### Adding a class to "views/_\_init__.py" file
+#### How do I add a class to the "views/_\_init__.py" file?
 
 Get your finished class
 
@@ -81,7 +81,7 @@ Add the class to the "views/_\_init__.py" file
 
 ---
 
-#### Adding script information to the "script" model
+#### How do I add script information to the "script" model?
 
 You will have to add to 3 dictionaries.
 
